@@ -2,14 +2,23 @@
 
 ## 🧩 Descripción
 
-Este proyecto consiste en una aplicación web sencilla desarrollada con **React**, que se conecta directamente a una base de datos **PostgreSQL** utilizando **PostgREST**, sin necesidad de un backend personalizado. El objetivo es demostrar el despliegue y las pruebas de una solución full-stack ligera, ideal para entornos académicos o prototipos rápidos.
+Este proyecto consiste en una aplicación web desarrollada con **React + Vite**, que se conecta directamente a una base de datos **PostgreSQL** utilizando **PostgREST**, sin necesidad de un backend tradicional. Ideal para prototipos rápidos, entornos académicos o soluciones ligeras.
 
 ## 🛠️ Tecnologías Utilizadas
 
-- ⚛️ React (Frontend)
-- 🐘 PostgreSQL (Base de Datos)
-- 🔄 PostgREST (REST API sobre PostgreSQL)
-- 🌐 Apache (Servidor Web)
-- 🐧 Debian Server en máquina virtual
+- ⚛️ React (Vite) – Frontend moderno
+- 🐘 PostgreSQL – Base de datos relacional
+- 🔄 PostgREST – API REST automática basada en PostgreSQL
+- 🌐 Apache – Servidor web para producción
+- 🐧 Debian (en VM) – Entorno de servidor
 
-## 📁 Estructura del Proyecto
+---
+
+## 🚀 Pasos para Descargar y Ejecutar el Proyecto
+
+### 1. 🔽 Clonar el Repositorio
+
+```bash
+git clone https://github.com/yerytech/app_grupo3_softwarelibre.git
+cd app_grupo3_softwarelibre
+```
