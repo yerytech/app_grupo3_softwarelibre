@@ -230,7 +230,9 @@ const TodoApp: React.FC = () => {
       <div className="todo-app">
         <header className="header">
           <h1 className="title">📝 Mi Lista de Tareas</h1>
-          <p className="subtitle">Organiza tu día de manera eficiente</p>
+          <p className="subtitle">
+            Organiza tu día de manera eficiente Gracias al grupo # 3
+          </p>
         </header>
 
         {error && (
