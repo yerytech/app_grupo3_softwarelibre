@@ -42,8 +42,6 @@ interface LoadingSpinnerProps {
   message?: string;
 }
 
-// Aquí sólo el componente React con clases CSS (className) en lugar de style inline
-
 const TodoItem: React.FC<TodoItemProps> = ({
   todo,
   onToggle,
@@ -188,7 +186,6 @@ const TodoApp: React.FC = () => {
   const [isLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Cargar todos desde localStorage al iniciar
   useEffect(() => {
     const savedTodos = localStorage.getItem("todos");
     if (savedTodos) {
@@ -201,7 +198,6 @@ const TodoApp: React.FC = () => {
     }
   }, []);
 
-  // Guardar todos en localStorage cuando cambien
   useEffect(() => {
     localStorage.setItem("todos", JSON.stringify(todos));
   }, [todos]);
