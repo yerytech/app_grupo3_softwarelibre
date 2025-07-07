@@ -6,19 +6,18 @@ import React, {
 } from "react";
 
 export interface Todo {
-  id: number;
-  text: string;
-  completed: boolean;
-  createdAt: string;
+  id: string;
+  titulo: string;
+  completado: boolean;
 }
 
 export type FilterType = "all" | "active" | "completed";
 
 interface TodoItemProps {
   todo: Todo;
-  onToggle: (id: number) => void;
-  onDelete: (id: number) => void;
-  onStartEdit: (id: number, text: string) => void;
+  onToggle: (id: string) => void;
+  onDelete: (id: string) => void;
+  onStartEdit: (id: string, text: string) => void;
   isEditing: boolean;
   editingText: string;
   onEditTextChange: (text: string) => void;
@@ -42,6 +41,8 @@ interface LoadingSpinnerProps {
   message?: string;
 }
 
+const API_BASE = "https://monkey-gcc-marc-others.trycloudflare.com";
+
 const TodoItem: React.FC<TodoItemProps> = ({
   todo,
   onToggle,
@@ -59,15 +60,15 @@ const TodoItem: React.FC<TodoItemProps> = ({
   };
 
   const handleDoubleClick = () => {
-    if (!isEditing) onStartEdit(todo.id, todo.text);
+    if (!isEditing) onStartEdit(todo.id, todo.titulo);
   };
 
   return (
-    <div className={`todo-item ${todo.completed ? "completed-todo" : ""}`}>
+    <div className={`todo-item ${todo.completado ? "completed-todo" : ""}`}>
       <div className="todo-content">
         <input
           type="checkbox"
-          checked={todo.completed}
+          checked={todo.completado}
           onChange={() => onToggle(todo.id)}
           className="checkbox"
         />
@@ -83,10 +84,10 @@ const TodoItem: React.FC<TodoItemProps> = ({
           />
         ) : (
           <span
-            className={`todo-text ${todo.completed ? "completed-text" : ""}`}
+            className={`todo-text ${todo.completado ? "completed-text" : ""}`}
             onDoubleClick={handleDoubleClick}
           >
-            {todo.text}
+            {todo.titulo}
           </span>
         )}
       </div>
@@ -111,7 +112,7 @@ const TodoItem: React.FC<TodoItemProps> = ({
         ) : (
           <>
             <button
-              onClick={() => onStartEdit(todo.id, todo.text)}
+              onClick={() => onStartEdit(todo.id, todo.titulo)}
               className="edit-button"
               title="Editar"
             >
@@ -181,44 +182,145 @@ const TodoApp: React.FC = () => {
   const [todos, setTodos] = useState<Todo[]>([]);
   const [inputValue, setInputValue] = useState<string>("");
   const [filter, setFilter] = useState<FilterType>("all");
-  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [editingText, setEditingText] = useState<string>("");
-  const [isLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
 
-  useEffect(() => {
-    const savedTodos = localStorage.getItem("todos");
-    if (savedTodos) {
-      try {
-        setTodos(JSON.parse(savedTodos));
-      } catch (error) {
-        console.error("Error al cargar todos:", error);
-        setError("Error al cargar las tareas guardadas");
-      }
-    }
-  }, []);
+  const fetchTasks = async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(`${API_BASE}/tasks`);
+      if (!res.ok) throw new Error("Error al obtener tareas");
+      const data = await res.json();
+      console.log(data);
 
-  useEffect(() => {
-    localStorage.setItem("todos", JSON.stringify(todos));
-  }, [todos]);
-
-  const addTodo = () => {
-    if (inputValue.trim()) {
-      const newTodo: Todo = {
-        id: Date.now(),
-        text: inputValue.trim(),
-        completed: false,
-        createdAt: new Date().toISOString(),
-      };
-      setTodos([...todos, newTodo]);
-      setInputValue("");
+      setTodos(data);
+    } catch (e) {
+      setError(String(e));
+      setTodos([]);
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const handleKeyPress = (e: KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter") {
-      addTodo();
+  useEffect(() => {
+    fetchTasks();
+  }, []);
+
+  const addTodo = async () => {
+    if (!inputValue.trim()) return;
+    setIsLoading(true);
+    setError(null);
+    try {
+      const newTask = {
+        titulo: inputValue.trim(),
+        completado: false,
+      };
+      const res = await fetch(`${API_BASE}/tasks`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newTask),
+      });
+      if (!res.ok) throw new Error("Error al agregar la tarea");
+      const created: Todo = await res.json();
+      setTodos((prev) => [...prev, created]);
+      setInputValue("");
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setIsLoading(false);
     }
+  };
+
+  const toggleTodo = async (id: string) => {
+    const todo = todos.find((t) => t.id === id);
+    if (!todo) return;
+
+    setIsLoading(true);
+    setError(null);
+    try {
+      const updated = { ...todo, completado: !todo.completado };
+      const res = await fetch(`${API_BASE}/tasks/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updated),
+      });
+      if (!res.ok) throw new Error("Error al actualizar la tarea");
+      setTodos((prev) => prev.map((t) => (t.id === id ? updated : t)));
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const deleteTodo = async (id: string) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(`${API_BASE}/tasks/${id}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) throw new Error("Error al eliminar la tarea");
+      setTodos((prev) => prev.filter((t) => t.id !== id));
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const startEdit = (id: string, text: string) => {
+    setEditingId(id);
+    setEditingText(text);
+  };
+
+  const saveEdit = async () => {
+    if (!editingText.trim() || !editingId) {
+      setEditingId(null);
+      setEditingText("");
+      return;
+    }
+    setIsLoading(true);
+    setError(null);
+    try {
+      const todo = todos.find((t) => t.id === editingId);
+      if (!todo) throw new Error("Tarea no encontrada");
+      const updated = { ...todo, titulo: editingText.trim() };
+      const res = await fetch(`${API_BASE}/tasks/${editingId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updated),
+      });
+      if (!res.ok) throw new Error("Error al editar la tarea");
+      setTodos((prev) => prev.map((t) => (t.id === editingId ? updated : t)));
+      setEditingId(null);
+      setEditingText("");
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditingText("");
+  };
+
+  const filteredTodos = todos.filter((todo) => {
+    if (filter === "active") return !todo.completado;
+    if (filter === "completed") return todo.completado;
+    return true;
+  });
+
+  const pendingCount = todos.filter((t) => !t.completado).length;
+  const completedCount = todos.filter((t) => t.completado).length;
+
+  const handleInputKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") addTodo();
   };
 
   return (
@@ -227,7 +329,7 @@ const TodoApp: React.FC = () => {
         <header className="header">
           <h1 className="title">📝 Mi Lista de Tareas</h1>
           <p className="subtitle">
-            Organiza tu día de manera eficiente Gracias al grupo # 3
+            Organiza tu día de manera eficiente. Grupo #3
           </p>
         </header>
 
@@ -251,15 +353,15 @@ const TodoApp: React.FC = () => {
               onChange={(e: ChangeEvent<HTMLInputElement>) =>
                 setInputValue(e.target.value)
               }
-              onKeyDown={handleKeyPress}
+              onKeyDown={handleInputKeyDown}
               placeholder="¿Qué necesitas hacer hoy?"
               className="input"
               disabled={isLoading}
             />
             <button
               onClick={addTodo}
-              className={`add-button ${isLoading ? "disabled-button" : ""}`}
               disabled={isLoading}
+              className={`add-button ${isLoading ? "disabled-button" : ""}`}
             >
               ➕ Agregar
             </button>
@@ -277,14 +379,14 @@ const TodoApp: React.FC = () => {
           <FilterButton
             filter="active"
             currentFilter={filter}
-            count={todos.filter((t) => !t.completed).length}
+            count={pendingCount}
             label="Pendientes"
             onClick={setFilter}
           />
           <FilterButton
             filter="completed"
             currentFilter={filter}
-            count={todos.filter((t) => t.completed).length}
+            count={completedCount}
             label="Completadas"
             onClick={setFilter}
           />
@@ -292,61 +394,24 @@ const TodoApp: React.FC = () => {
 
         {isLoading ? (
           <LoadingSpinner />
+        ) : filteredTodos.length === 0 ? (
+          <EmptyState filter={filter} />
         ) : (
           <div className="todo-list">
-            {todos.filter((todo) => {
-              if (filter === "active") return !todo.completed;
-              if (filter === "completed") return todo.completed;
-              return true;
-            }).length === 0 ? (
-              <EmptyState filter={filter} />
-            ) : (
-              todos
-                .filter((todo) => {
-                  if (filter === "active") return !todo.completed;
-                  if (filter === "completed") return todo.completed;
-                  return true;
-                })
-                .map((todo) => (
-                  <TodoItem
-                    key={todo.id}
-                    todo={todo}
-                    onToggle={(id) => {
-                      // tu función updateToggle aquí
-                      const updatedTodos = todos.map((t) =>
-                        t.id === id ? { ...t, completed: !t.completed } : t
-                      );
-                      setTodos(updatedTodos);
-                    }}
-                    onDelete={(id) => {
-                      setTodos(todos.filter((t) => t.id !== id));
-                    }}
-                    onStartEdit={(id, text) => {
-                      setEditingId(id);
-                      setEditingText(text);
-                    }}
-                    isEditing={editingId === todo.id}
-                    editingText={editingText}
-                    onEditTextChange={setEditingText}
-                    onSaveEdit={() => {
-                      if (editingText.trim() && editingId !== null) {
-                        const updatedTodos = todos.map((t) =>
-                          t.id === editingId
-                            ? { ...t, text: editingText.trim() }
-                            : t
-                        );
-                        setTodos(updatedTodos);
-                      }
-                      setEditingId(null);
-                      setEditingText("");
-                    }}
-                    onCancelEdit={() => {
-                      setEditingId(null);
-                      setEditingText("");
-                    }}
-                  />
-                ))
-            )}
+            {filteredTodos.map((todo) => (
+              <TodoItem
+                key={todo.id}
+                todo={todo}
+                onToggle={toggleTodo}
+                onDelete={deleteTodo}
+                onStartEdit={startEdit}
+                isEditing={editingId === todo.id}
+                editingText={editingText}
+                onEditTextChange={setEditingText}
+                onSaveEdit={saveEdit}
+                onCancelEdit={cancelEdit}
+              />
+            ))}
           </div>
         )}
 
